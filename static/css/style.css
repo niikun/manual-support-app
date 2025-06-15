@@ -1,0 +1,54 @@
+.page-content {
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 20px;
+    background-color: #fafafa;
+    border-radius: 5px;
+}
+
+.chat-history {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #dee2e6;
+}
+
+.card-header {
+    background-color: #343a40;
+    color: white;
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.btn-dark {
+    background-color: #343a40;
+    border-color: #343a40;
+}
+
+.btn-outline-dark {
+    color: #343a40;
+    border-color: #343a40;
+}
+
+.btn-outline-dark:hover {
+    background-color: #343a40;
+    border-color: #343a40;
+    color: white;
+}
+
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}

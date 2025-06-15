@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マニュアル詳細 - {{ filename }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>マニュアル要約</h5>
+                        <div>
+                            <button class="btn btn-light btn-lg fw-bold border" id="generate-summary">
+                                マニュアル要約を音声で聞く
+                            </button>
+                            <button class="btn btn-outline-dark btn-sm ms-2" id="play-audio" style="display: none;">
+                                🔊 再生
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <audio id="audio-player" controls style="width: 100%; display: none;" class="mb-3"></audio>
+                        <div class="text-center mb-3">
+                            <button class="btn btn-outline-secondary btn-sm" id="toggle-summary" style="display: none;">
+                                📄 要約テキストを表示
+                            </button>
+                        </div>
+                        <div id="page-content" class="page-content" style="display: none;">
+                            <p class="text-muted">「マニュアル要約を音声で聞く」ボタンをクリックして、マニュアルの詳細要約を生成してください。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>質疑応答</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="chat-history" class="chat-history mb-3" style="height: 500px; overflow-y: auto; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px;">
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="question-input" placeholder="マニュアルについて質問してください">
+                            <button class="btn btn-dark" id="ask-question">送信</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- フッター -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="text-warning mb-3">⚠️ 重要な注意事項</h6>
+                    <p class="mb-2">この要約と音声は、マニュアルの概要を理解するためのサポートツールです。</p>
+                    <p class="mb-2"><strong>実際の作業や操作を行う前に、必ず元のマニュアルを詳細に確認してください。</strong></p>
+                    <p class="mb-0 text-muted">安全性や正確性に関わる重要な情報は、必ず原本マニュアルでご確認ください。</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const filename = '{{ filename }}';
+        let pages = [];
+        let currentPage = null;
+        
+        // ページ一覧は不要になったため削除
+        
+        // マニュアル要約・音声生成
+        document.getElementById('generate-summary').onclick = function() {
+            this.disabled = true;
+            this.textContent = '⏳ 要約生成中...';
+            
+            fetch(`/api/generate_summary/${filename}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('エラー: ' + data.error);
+                    } else {
+                        document.getElementById('page-content').textContent = data.summary;
+                        document.getElementById('play-audio').style.display = 'inline-block';
+                        document.getElementById('toggle-summary').style.display = 'inline-block';
+                        document.getElementById('audio-player').style.display = 'block';
+                        document.getElementById('audio-player').src = `/audio/${data.audio_file}`;
+                        // 自動再生
+                        document.getElementById('audio-player').play();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('要約生成に失敗しました');
+                })
+                .finally(() => {
+                    this.disabled = false;
+                    this.textContent = 'マニュアル要約を音声で聞く';
+                });
+        };
+        
+        // 要約テキスト表示/非表示
+        document.getElementById('toggle-summary').onclick = function() {
+            const summaryDiv = document.getElementById('page-content');
+            if (summaryDiv.style.display === 'none') {
+                summaryDiv.style.display = 'block';
+                this.textContent = '📄 要約テキストを非表示';
+            } else {
+                summaryDiv.style.display = 'none';
+                this.textContent = '📄 要約テキストを表示';
+            }
+        };
+        
+        // 音声再生
+        document.getElementById('play-audio').onclick = function() {
+            const audioPlayer = document.getElementById('audio-player');
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        };
+        
+        // 質疑応答
+        document.getElementById('ask-question').onclick = askQuestion;
+        document.getElementById('question-input').onkeypress = function(e) {
+            if (e.key === 'Enter') askQuestion();
+        };
+        
+        function askQuestion() {
+            const questionInput = document.getElementById('question-input');
+            const question = questionInput.value.trim();
+            if (!question) return;
+            
+            // 質問を表示
+            addMessageToChat('user', question);
+            questionInput.value = '';
+            
+            // 回答を取得
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    manual_filename: filename,
+                    question: question
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    addMessageToChat('bot', 'エラー: ' + data.error);
+                } else {
+                    addMessageToChat('bot', data.answer);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                addMessageToChat('bot', '回答の取得に失敗しました');
+            });
+        }
+        
+        function addMessageToChat(sender, message) {
+            const chatHistory = document.getElementById('chat-history');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `mb-2 ${sender === 'user' ? 'text-end' : 'text-start'}`;
+            messageDiv.innerHTML = `
+                <div class="p-2 rounded ${sender === 'user' ? 'bg-primary text-white' : 'bg-light'}">
+                    ${message}
+                </div>
+            `;
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    </script>
+</body>
+</html>
