@@ -353,4 +353,6 @@ def generate_summary(filename):
         return jsonify({'error': f'要約生成中にエラーが発生しました: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
